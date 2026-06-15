@@ -1,0 +1,334 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MUD RP Log Cleaner</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: #f4f4f7;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        }
+        h1 {
+            margin-top: 0;
+            font-size: 1.8rem;
+            color: #111;
+            border-bottom: 2px solid #eaeaea;
+            padding-bottom: 10px;
+        }
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            border: 1px solid #e9ecef;
+        }
+        .control-group {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin-bottom: 6px;
+            color: #495057;
+        }
+        select, input {
+            padding: 8px 12px;
+            border-radius: 4px;
+            border: 1px solid #ced4da;
+            font-size: 0.9rem;
+            background-color: #fff;
+        }
+        select:focus, input:focus {
+            outline: none;
+            border-color: #86b7fe;
+            box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+        }
+        .btn-container {
+            grid-column: 1 / -1;
+            display: flex;
+            gap: 10px;
+            margin-top: 5px;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 0.95rem;
+            transition: background-color 0.2s;
+        }
+        .btn-primary {
+            background-color: #0d6efd;
+            color: white;
+            flex: 2;
+        }
+        .btn-primary:hover { background-color: #0b5ed7; }
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+            flex: 1;
+        }
+        .btn-secondary:hover { background-color: #5c636a; }
+        .workspace {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        @media (min-width: 768px) {
+            .workspace {
+                flex-direction: row;
+            }
+        }
+        .text-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        textarea {
+            height: 450px;
+            padding: 12px;
+            font-family: "Courier New", Courier, monospace;
+            font-size: 0.9rem;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            resize: vertical;
+            line-height: 1.4;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #86b7fe;
+        }
+    </style>
+</head>
+<body>
+
+
+<div class="container">
+    <h1>MUD Roleplay Log Cleaner</h1>
+    
+    <div class="controls">
+        <div class="control-group">
+            <label for="charName">Character Name:</label>
+            <input type="text" id="charName" value="Amitriel">
+        </div>
+        <div class="control-group">
+            <label for="tellsMenu">Tells:</label>
+            <select id="tellsMenu">
+                <option value="Strip">Strip</option>
+                <option value="Keep">Keep</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label for="narratesMenu">Narrates:</label>
+            <select id="narratesMenu">
+                <option value="Strip">Strip</option>
+                <option value="Keep">Keep</option>
+            </select>
+        </div>
+        <div class="control-group">
+            <label for="chatsMenu">Chats/OOC Channels:</label>
+            <select id="chatsMenu">
+                <option value="Strip">Strip</option>
+                <option value="Keep">Keep</option>
+            </select>
+        </div>
+        <div class="control-group" style="grid-column: span 2;">
+            <label for="echoMenu">Log Echo Setting:</label>
+            <select id="echoMenu">
+                <option value="echoOn">Log has Echo ON</option>
+                <option value="echoOff">Log has Echo OFF</option>
+                <option value="keepAll">Keep Everything (No Filtering)</option>
+            </select>
+        </div>
+        
+        <div class="btn-container">
+            <button class="btn-primary" onclick="cleanLog()">Clean Log</button>
+            <button class="btn-secondary" onclick="copyToClipboard()">Copy Output</button>
+        </div>
+    </div>
+
+
+    <div class="workspace">
+        <div class="text-group">
+            <label for="inputArea">Paste Raw MUD Log Here:</label>
+            <textarea id="inputArea" placeholder="Paste your raw console text here..."></textarea>
+        </div>
+        <div class="text-group">
+            <label for="outputArea">Cleaned Roleplay Narrative:</label>
+            <textarea id="outputArea" placeholder="Your pristine story will appear here..." readonly></textarea>
+        </div>
+    </div>
+</div>
+
+
+<script>
+const wotmudCommands = new Set([
+    "l", "t", "r", "drs", "n", "s", "e", "w", "u", "d", "k", "f", "sc", "inv", "i", "eq",
+    "say", "tell", "reply", "whisper", "emote", "narrate", "chat", "yell", "shout", "ask", "order", "squit", "gtell", "grouptell", "page",
+    "look", "sit", "stand", "rest", "sleep", "wake", "north", "south", "east", "west", "up", "down", "enter", "leave", "open", "close", "lock", "unlock",
+    "get", "take", "drop", "put", "give", "wear", "remove", "wield", "hold", "draw", "sheathe", "examine", "search", "read", "buy", "sell", "list", "value",
+    "nod", "nods", "smile", "smiles", "bow", "bows", "curtsy", "wave", "grin", "grins", "laugh", "laughs", "shrug", "shrugs", "sigh", "sighs", "cough", "coughs",
+    "stare", "blink", "ponder", "think", "poke", "pokes", "pat", "pats", "hug", "salute", "snap", "choke", "snicker", "gasp", "glance", "shiver", "frown", "scowl",
+    "kill", "attack", "flee", "rescue", "kick", "bash", "trip", "charge", "strike", "disarm", "parry", "dodge", "assist", "hit", "shoot", "channel", "cast",
+    "cure", "heal", "bind", "bandage", "hide", "sneak", "steal", "pick", "backstab", "stab", "track", "ride", "tame", "mount", "dismount",
+    "score", "attributes", "skills", "spells", "inventory", "equipment", "affected", "where", "who", "whois", "time", "weather", "help", "commands",
+    "alias", "tick", "prompt", "color", "toggle", "brief", "compact", "autoexit", "autoloot", "autogold", "cls", "clear", "quit", "save", "echo"
+]);
+
+
+function cleanLog() {
+    const rawText = document.getElementById('inputArea').value;
+    if (!rawText.trim()) {
+        alert("Please paste a MUD log to clean first.");
+        return;
+    }
+
+
+    const charName = document.getElementById('charName').value.trim() || "Amitriel";
+    const keepTells = document.getElementById('tellsMenu').value === 'Keep';
+    const keepNarrates = document.getElementById('narratesMenu').value === 'Keep';
+    const keepChats = document.getElementById('chatsMenu').value === 'Keep';
+    const echoMode = document.getElementById('echoMenu').value;
+
+
+    const lines = rawText.split('\n');
+    let cleanedLines = [];
+    let lastAdded = "";
+
+
+    for (let i = 0; i < lines.length; i++) {
+        let cleanedLine = lines[i].trim();
+        if (!cleanedLine) continue;
+
+
+        // 1. Filter Vitals Prompts completely
+        if (echoMode === 'echoOn' || echoMode === 'echoOff') {
+            if (/^\*.*HP:/i.test(cleanedLine) || cleanedLine === ">") {
+                continue;
+            }
+        }
+
+
+        // 2. Filter System Spam & Errors
+        if (/^No-one by that name\./i.test(cleanedLine) ||
+            /^Arglebargle/i.test(cleanedLine) ||
+            /^Line too long/i.test(cleanedLine) ||
+            /^You can't /i.test(cleanedLine) ||
+            /^You don't see/i.test(cleanedLine) ||
+            /^They aren't here/i.test(cleanedLine) ||
+            /^Alas, you cannot/i.test(cleanedLine) ||
+            /^Communication echo /i.test(cleanedLine) ||
+            cleanedLine === "Ok." || 
+            cleanedLine.includes("has arrived from the west.") ||
+            cleanedLine.includes("disappears into the void.") ||
+            cleanedLine.includes("has returned.") ||
+            cleanedLine.includes("You are hungry.") ||
+            cleanedLine.includes("You are thirsty.") ||
+            cleanedLine.includes("You have been idle") ||
+            cleanedLine.includes("You are returned from the void") ||
+            cleanedLine.includes("The Wheel of Time turns towards the Light")) {
+            continue;
+        }
+
+
+        // 3. Channel Toggle Filters
+        if (cleanedLine.includes("tells you") || /^You tell\s/i.test(cleanedLine) || /^You reply to\s/i.test(cleanedLine)) {
+            if (!keepTells) continue;
+        }
+        if (cleanedLine.includes("narrates")) {
+            if (!keepNarrates) continue;
+        }
+        if (cleanedLine.includes("chats")) {
+            if (!keepChats) continue;
+        }
+
+
+        // 4. Mode Logic Injection
+        if (echoMode === 'echoOn') {
+            // Drop raw input strings completely (e.g. 'say hello') because the server prints the 'You say...' echo right next.
+            const firstWord = cleanedLine.split(/\s+/)[0].toLowerCase();
+            if (wotmudCommands.has(firstWord) && !/^You\s/i.test(cleanedLine)) {
+                continue;
+            }
+        } 
+        else if (echoMode === 'echoOff') {
+            // Process raw inputs when echo is off (e.g., 'say this is what echo off looks like')
+            if (/^say\s+/i.test(cleanedLine)) {
+                cleanedLine = cleanedLine.replace(/^say\s+(.+)/i, `${charName} says '$1'`);
+            } else if (/^emote\s+/i.test(cleanedLine)) {
+                cleanedLine = cleanedLine.replace(/^emote\s+(.+)/i, `$1`);
+                // Strip self references if the user manually typed their name during an emote command
+                const nameRegex = new RegExp(`^${charName}\\s+`, 'i');
+                cleanedLine = cleanedLine.replace(nameRegex, '');
+            } else if (/^whisper\s+(\w+)\s+(.+)/i.test(cleanedLine)) {
+                cleanedLine = cleanedLine.replace(/^whisper\s+(\w+)\s+(.+)/i, `${charName} whispers to $1 '$2'`);
+            } else {
+                // Eliminate general non-comms game commands (e.g., 'l', 'sit chair')
+                const firstWord = cleanedLine.split(/\s+/)[0].toLowerCase();
+                if (wotmudCommands.has(firstWord)) {
+                    continue;
+                }
+            }
+        }
+
+
+        // 5. Standard Server-Echo Formatting adjustments (For Echo On outputs)
+        cleanedLine = cleanedLine.replace(/^You say '(.+)'/i, `${charName} says '$1'`);
+        cleanedLine = cleanedLine.replace(/^You emote:\s+(.+)/i, `$1`);
+        // If server repeats name in emote reflection like "You emote: Amitriel echo on" -> "Amitriel echo on"
+        const doubleNameRegex = new RegExp(`^${charName}\\s+${charName}\\s+`, 'i');
+        const singleNameRegex = new RegExp(`^${charName}\\s+`, 'i');
+        if (cleanedLine.startsWith(`${charName} `)) {
+            cleanedLine = cleanedLine.replace(doubleNameRegex, `${charName} `);
+        }
+        cleanedLine = cleanedLine.replace(/^You whisper to (\w+)\s+'(.+)'/i, `${charName} whispers to $1 '$2'`);
+
+
+        // Prevent identical back-to-back entries
+        if (cleanedLine === lastAdded) {
+            continue;
+        }
+
+
+        cleanedLines.push(cleanedLine);
+        lastAdded = cleanedLine;
+    }
+
+
+    document.getElementById('outputArea').value = cleanedLines.join('\n\n');
+}
+
+
+function copyToClipboard() {
+    const outputArea = document.getElementById('outputArea');
+    if (!outputArea.value) {
+        alert("There is nothing to copy yet!");
+        return;
+    }
+    outputArea.select();
+    outputArea.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(outputArea.value);
+    alert("Cleaned log copied to clipboard!");
+}
+</script>
+
+
+</body>
+</html>
